@@ -21,3 +21,7 @@ Ce sont des tests de contrôle avec des réponses fabriquées, pas des tests de 
 1. Pourquoi le programme refuse-t-il un identifiant proposé par l'IA qui n'est pas dans `Catalogue` ?
 2. Pourquoi `Utilisateur` est-elle abstraite et quel menu voit un `Admin` ?
 3. Si deux genres contiennent un morceau avec le même identifiant, comment le catalogue réagit-il ?
+
+## Améliorations à faire
+
+Il reste des améliorations à faire. Il faut tester la lecture et le déplacement dans des flux Jamendo réels, puis ajouter un cache audio local si la barre de progression n'est pas fiable. Il faudra aussi essayer les recommandations avec une vraie clé Groq et noter honnêtement les réponses. Enfin, les comptes ne sont pas persistés et les mots de passe ne sont pas hachés ; ce sont des extensions possibles.
