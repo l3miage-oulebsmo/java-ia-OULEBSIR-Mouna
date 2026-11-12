@@ -1,0 +1,14 @@
+target/
+.idea/
+*.iml
+*.class
+.DS_Store
+Thumbs.db
+.moodtune/
+.moodtune-tools/
+config/jamendo.properties
+.settings/
+.classpath
+.project
+.vscode/
+*.log
