@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface Recommandeur {
     List<Morceau> recommander(String humeur, Catalogue catalogue);
+
+    List<Morceau> recommanderParmi(String humeur, List<Morceau> candidats);
 }

@@ -24,7 +24,12 @@ public final class HttpAiClient implements AiClient {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalArgumentException("La variable AI_API_KEY est vide.");
         }
-        this.apiKey = apiKey.trim();
+        String cleValide = apiKey.trim();
+        if (!cleValide.matches("^(?:gsk|sk)_[A-Za-z0-9_-]+$")) {
+            throw new IllegalArgumentException(
+                    "La variable AI_API_KEY ne semble pas être une clé Groq valide.");
+        }
+        this.apiKey = cleValide;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();

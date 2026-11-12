@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -74,6 +75,45 @@ class JamendoClientTest {
         String requete = URLDecoder.decode(uriDemandee.get().getRawQuery(),
                 StandardCharsets.UTF_8);
         assertTrue(requete.contains("search=Soprano"));
+    }
+
+    @Test
+    void rechercheParTagsEnvoieLeTagCommeRechercheFloue() {
+        AtomicReference<URI> uriDemandee = new AtomicReference<>();
+        JamendoClient client = new JamendoClient("test-client", uri -> {
+            uriDemandee.set(uri);
+            return "{\"headers\":{\"status\":\"success\"},\"results\":[]}";
+        });
+
+        assertTrue(client.rechercherParTags(List.of("ambient")).isEmpty());
+        String requete = URLDecoder.decode(uriDemandee.get().getRawQuery(),
+                StandardCharsets.UTF_8);
+        assertTrue(requete.contains("fuzzytags=ambient"));
+    }
+
+    @Test
+    void rechercheParTagsEssaieLeTagSuivantSiLePremierNeDonneRien() {
+        AtomicReference<URI> uriDemandee = new AtomicReference<>();
+        AtomicInteger appels = new AtomicInteger();
+        JamendoClient client = new JamendoClient("test-client", uri -> {
+            uriDemandee.set(uri);
+            if (appels.incrementAndGet() == 1) {
+                return "{\"headers\":{\"status\":\"success\"},\"results\":[]}";
+            }
+            return """
+                    {"headers":{"status":"success"},"results":[{
+                      "id":"742","name":"Calm song","artist_name":"Example",
+                      "musicinfo":{"tags":{"genres":["Ambient"]}}
+                    }]}
+                    """;
+        });
+
+        assertEquals("Calm song",
+                client.rechercherParTags(List.of("relaxation", "ambient")).getFirst().titre());
+        assertEquals(2, appels.get());
+        String requete = URLDecoder.decode(uriDemandee.get().getRawQuery(),
+                StandardCharsets.UTF_8);
+        assertTrue(requete.contains("fuzzytags=ambient"));
     }
 
     @Test

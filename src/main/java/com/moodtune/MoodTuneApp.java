@@ -13,6 +13,7 @@ import com.moodtune.model.GestionUtilisateurs;
 import com.moodtune.model.Morceau;
 import com.moodtune.model.Utilisateur;
 import com.moodtune.recommendation.IaRecommandeur;
+import com.moodtune.recommendation.HumeurMatcher;
 import com.moodtune.recommendation.MockRecommandeur;
 import com.moodtune.recommendation.Recommandeur;
 import com.moodtune.ui.LecteurAudio;
@@ -85,13 +86,20 @@ public final class MoodTuneApp extends Application {
     private void configurerRecommandeur() {
         String cle = System.getenv("AI_API_KEY");
         if (cle == null || cle.isBlank()) {
-            AiClient client = new MockAiClient();
-            recommandeur = new MockRecommandeur();
-            messageIA = client.demander("");
-        } else {
+            activeModeMockIA(new MockAiClient().demander(""));
+            return;
+        }
+        try {
             recommandeur = new IaRecommandeur(new HttpAiClient(cle));
             messageIA = "Recommandations Groq activées.";
+        } catch (IllegalArgumentException e) {
+            activeModeMockIA("Clé Groq invalide : passage en mode IA simulé.");
         }
+    }
+
+    private void activeModeMockIA(String message) {
+        recommandeur = new MockRecommandeur();
+        messageIA = message;
     }
 
     private void configurerAdmin() {
@@ -354,7 +362,22 @@ public final class MoodTuneApp extends Application {
         Task<List<Morceau>> tache = new Task<>() {
             @Override
             protected List<Morceau> call() {
-                return recommandeur.recommander(humeur, catalogue);
+                List<String> tags = HumeurMatcher.tagsJamendo(humeur);
+                try {
+                    if (jamendoClient != null && !tags.isEmpty()) {
+                        List<Morceau> morceauxJamendo = jamendoClient.rechercherParTags(tags);
+                        if (!morceauxJamendo.isEmpty()) {
+                            return recommandeur.recommanderParmi(humeur, morceauxJamendo);
+                        }
+                    }
+                    return recommandeur.recommander(humeur, catalogue);
+                } catch (AiException e) {
+                    if (recommandeur instanceof IaRecommandeur) {
+                        activeModeMockIA("Clé Groq invalide : génération IA annulée, mode simulé activé.");
+                        return new MockRecommandeur().recommander(humeur, catalogue);
+                    }
+                    throw e;
+                }
             }
         };
         tache.setOnSucceeded(event -> {

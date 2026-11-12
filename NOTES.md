@@ -25,3 +25,5 @@ Ce sont des tests de contrôle avec des réponses fabriquées, pas des tests de 
 ## Améliorations à faire
 
 Il reste des améliorations à faire. Il faut tester la lecture et le déplacement dans des flux Jamendo réels, puis ajouter un cache audio local si la barre de progression n'est pas fiable. Il faudra aussi essayer les recommandations avec une vraie clé Groq et noter honnêtement les réponses. Enfin, les comptes ne sont pas persistés et les mots de passe ne sont pas hachés ; ce sont des extensions possibles.
+
+Les humeurs connues sont recherchées avec les tags Jamendo associés. Sans connexion Jamendo, `HumeurMatcher` cherche dans le catalogue local. Si aucun titre, artiste ou genre ne correspond, la playlist reste vide : l'application ne complète pas avec des morceaux sans rapport.

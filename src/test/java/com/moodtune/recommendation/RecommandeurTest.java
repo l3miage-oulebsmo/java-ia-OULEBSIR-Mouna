@@ -1,6 +1,7 @@
 package com.moodtune.recommendation;
 
 import com.moodtune.ai.AiClient;
+import com.moodtune.ai.HttpAiClient;
 import com.moodtune.model.Catalogue;
 import com.moodtune.model.Morceau;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RecommandeurTest {
@@ -26,6 +28,27 @@ class RecommandeurTest {
         List<Morceau> resultat = new MockRecommandeur().recommander("je suis calme", catalogue);
 
         assertEquals(List.of(catalogue.trouverParId("demo-2")), resultat);
+    }
+
+    @Test
+    void humeurSansCorrespondanceNeRenvoiePasDesMorceauxArbitraires() {
+        Catalogue catalogueSansGenresConnus = new Catalogue();
+        for (int index = 0; index < 12; index++) {
+            catalogueSansGenresConnus.ajouter(new Morceau("id-" + index,
+                    "Chanson " + index, "Artiste", "Autre"));
+        }
+        MockRecommandeur mock = new MockRecommandeur();
+
+        assertTrue(mock.recommander("calme", catalogueSansGenresConnus).isEmpty());
+        assertTrue(mock.recommander("joyeux", catalogueSansGenresConnus).isEmpty());
+        assertEquals(List.of("relaxation", "ambient", "chillout", "meditation"),
+                HumeurMatcher.tagsJamendo("calme"));
+        assertEquals(List.of("happy", "upbeat", "pop"),
+                HumeurMatcher.tagsJamendo("joyeux"));
+        assertEquals(List.of("melancholy", "melancholic", "emotional"),
+                HumeurMatcher.tagsJamendo("triste"));
+        assertEquals(List.of("energetic", "dance", "rock"),
+                HumeurMatcher.tagsJamendo("énergétique"));
     }
 
     @Test
@@ -53,6 +76,14 @@ class RecommandeurTest {
     }
 
     @Test
+    void cleGroqInvalideEstRefuseeAvantToutAppelReseau() {
+        IllegalArgumentException erreur = assertThrows(IllegalArgumentException.class,
+                () -> new HttpAiClient("cle-invalide"));
+
+        assertTrue(erreur.getMessage().contains("AI_API_KEY"));
+    }
+
+    @Test
     void iaNeContactePasLeClientSiLHumeurOuLeCatalogueEstVide() {
         AtomicInteger appels = new AtomicInteger();
         IaRecommandeur recommandeur = new IaRecommandeur(prompt -> {
@@ -63,5 +94,19 @@ class RecommandeurTest {
         assertTrue(recommandeur.recommander("  ", catalogue).isEmpty());
         assertTrue(recommandeur.recommander("joyeux", new Catalogue()).isEmpty());
         assertEquals(0, appels.get());
+    }
+
+    @Test
+    void iaNePeutPasChoisirUnMorceauQuiNeCorrespondPasAuxCandidatsDeLHumeur() {
+        Catalogue catalogueSansGenresConnus = new Catalogue();
+        for (int index = 0; index < 12; index++) {
+            catalogueSansGenresConnus.ajouter(new Morceau("id-" + index,
+                    "Chanson " + index, "Artiste", "Autre"));
+        }
+        String idJoyeux = catalogueSansGenresConnus.tousLesMorceaux().get(6).id();
+        IaRecommandeur recommandeur = new IaRecommandeur(prompt -> idJoyeux);
+
+        assertTrue(recommandeur.recommanderParmi("calme",
+                List.of(catalogueSansGenresConnus.tousLesMorceaux().getFirst())).isEmpty());
     }
 }

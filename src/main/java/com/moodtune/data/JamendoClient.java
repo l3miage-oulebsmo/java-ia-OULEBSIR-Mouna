@@ -43,14 +43,29 @@ public final class JamendoClient {
     }
 
     public List<Morceau> chargerCatalogue() {
-        return chargerMorceaux(null);
+        return chargerMorceaux(null, null);
     }
 
     public List<Morceau> rechercher(String recherche) {
         if (recherche == null || recherche.isBlank()) {
             return List.of();
         }
-        return chargerMorceaux(recherche.trim());
+        return chargerMorceaux(recherche.trim(), null);
+    }
+
+    public List<Morceau> rechercherParTags(List<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return List.of();
+        }
+        for (String tag : tags) {
+            if (tag != null && !tag.isBlank()) {
+                List<Morceau> morceaux = chargerMorceaux(null, tag.trim());
+                if (!morceaux.isEmpty()) {
+                    return morceaux;
+                }
+            }
+        }
+        return List.of();
     }
 
     public String chargerUrlAudio(String id) {
@@ -88,7 +103,7 @@ public final class JamendoClient {
         }
     }
 
-    private List<Morceau> chargerMorceaux(String recherche) {
+    private List<Morceau> chargerMorceaux(String recherche, String tags) {
         String clientIdEncode = URLEncoder.encode(clientId, StandardCharsets.UTF_8);
         StringBuilder adresse = new StringBuilder(ENDPOINT)
                 .append("?client_id=").append(clientIdEncode)
@@ -97,6 +112,10 @@ public final class JamendoClient {
         if (recherche != null) {
             adresse.append("&search=")
                     .append(URLEncoder.encode(recherche, StandardCharsets.UTF_8));
+        }
+        if (tags != null) {
+            adresse.append("&fuzzytags=")
+                    .append(URLEncoder.encode(tags, StandardCharsets.UTF_8));
         }
         URI uri = URI.create(adresse.toString());
         try {

@@ -34,7 +34,9 @@ Sans clé, l'application choisit `MockRecommandeur`, qui fonctionne sans réseau
 $env:AI_API_KEY = "ta-cle-groq"
 ```
 
-La clé est alors envoyée à l'API Groq, modèle `llama-3.1-8b-instant`. Une réponse Groq qui propose un identifiant absent du catalogue est rejetée.
+La clé est alors envoyée à l'API Groq, modèle `llama-3.1-8b-instant`. Si la clé est invalide ou refusée, l'application bascule automatiquement sur le mode simulé sans bloquer la playlist. Une réponse Groq qui propose un identifiant absent du catalogue est rejetée.
+
+Pour les humeurs connues (calme, joyeux, triste, énergique), MoodTune demande à Jamendo des morceaux portant les tags associés. Sans Jamendo, il filtre les morceaux déjà chargés par titre, artiste et genre. Si rien ne correspond, il n'invente pas de résultats en prenant des morceaux au hasard.
 
 Pour tester le menu Admin, configure aussi des identifiants avant le lancement :
 
@@ -57,10 +59,10 @@ Les mots de passe sont seulement gardés en mémoire pendant la session et ne so
 8. Les chargements et recherches réseau se font en arrière-plan pour ne pas bloquer la fenêtre.
 9. Si Jamendo n'est pas disponible, l'application utilise quelques morceaux de démonstration.
 10. `Recommandeur` est une interface commune aux deux façons de créer une playlist.
-11. `MockRecommandeur` choisit des morceaux sans appel réseau.
-12. `IaRecommandeur` envoie l'humeur et le catalogue à `AiClient`.
-13. `HttpAiClient` appelle Groq ; `MockAiClient` représente le mode sans clé.
-14. Avant d'afficher la playlist IA, le programme vérifie chaque identifiant dans le catalogue.
+11. `HumeurMatcher` associe les humeurs connues à des mots-clés et à des tags Jamendo.
+12. Pour ces humeurs, `JamendoClient` cherche les morceaux avec les tags associés.
+13. `MockRecommandeur` ou `IaRecommandeur` choisit parmi les morceaux trouvés.
+14. Avant d'afficher la playlist IA, le programme vérifie chaque identifiant parmi les candidats du catalogue.
 15. L'Admin peut ajouter ou supprimer des morceaux ; l'Auditeur gère ses favoris et abonnements.
 
 Le petit défi de l'énoncé — ajouter à la main une commande Admin qui liste les utilisateurs — est laissé comme exercice personnel.
