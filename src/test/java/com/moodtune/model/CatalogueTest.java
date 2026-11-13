@@ -24,11 +24,14 @@ class CatalogueTest {
     @Test
     void suppressionNettoieAussiLeGenreDevenuVide() {
         Catalogue catalogue = new Catalogue();
-        catalogue.ajouter(new Morceau("1", "Titre", "Artiste", "Pop"));
+        Morceau morceau = new Morceau("1", "Titre", "Artiste", "Pop");
+        catalogue.ajouter(morceau);
 
         assertTrue(catalogue.supprimer("1"));
         assertTrue(catalogue.estVide());
         assertNull(catalogue.trouverParId("1"));
         assertFalse(catalogue.supprimer("inconnu"));
+        assertFalse(catalogue.ajouter(morceau));
+        assertTrue(catalogue.exclureSupprimes(List.of(morceau)).isEmpty());
     }
 }

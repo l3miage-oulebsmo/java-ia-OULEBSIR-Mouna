@@ -1,15 +1,18 @@
 package com.moodtune.model;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class Catalogue {
     private final Map<String, List<Morceau>> morceauxParGenre = new LinkedHashMap<>();
+    private final Set<String> identifiantsSupprimes = new HashSet<>();
 
     public boolean ajouter(Morceau morceau) {
-        if (trouverParId(morceau.id()) != null) {
+        if (identifiantsSupprimes.contains(morceau.id()) || trouverParId(morceau.id()) != null) {
             return false;
         }
         morceauxParGenre.computeIfAbsent(morceau.genre(), genre -> new ArrayList<>())
@@ -27,6 +30,7 @@ public final class Catalogue {
             var entree = iterator.next();
             boolean supprime = entree.getValue().removeIf(morceau -> morceau.id().equals(id));
             if (supprime) {
+                identifiantsSupprimes.add(id);
                 if (entree.getValue().isEmpty()) {
                     iterator.remove();
                 }
@@ -34,6 +38,12 @@ public final class Catalogue {
             }
         }
         return false;
+    }
+
+    public List<Morceau> exclureSupprimes(List<Morceau> morceaux) {
+        return morceaux.stream()
+                .filter(morceau -> !identifiantsSupprimes.contains(morceau.id()))
+                .toList();
     }
 
     public Morceau trouverParId(String id) {

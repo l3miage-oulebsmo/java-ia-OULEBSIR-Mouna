@@ -299,6 +299,13 @@ public final class MoodTuneApp extends Application {
         ListView<Morceau> morceaux = creerListeMorceaux();
         listeActive = morceaux;
         remplirListe(morceaux, catalogue.tousLesMorceaux());
+        lecteurAudio = new LecteurAudio(jamendoClient, morceaux, this::definirStatut);
+        morceaux.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 1) {
+                lecteurAudio.jouerOuMettreEnPause(
+                        morceaux.getSelectionModel().getSelectedItem());
+            }
+        });
 
         TextField recherche = new TextField();
         recherche.setPromptText("Rechercher dans le catalogue");
@@ -308,7 +315,18 @@ public final class MoodTuneApp extends Application {
         Button toutVoir = new Button("Tout le catalogue");
         toutVoir.setOnAction(event ->
                 afficherMorceaux(morceaux, catalogue.tousLesMorceaux(), "Catalogue"));
-        HBox ligneRecherche = new HBox(10, recherche, chercher, toutVoir);
+        Button supprimer = new Button("Supprimer la sélection");
+        supprimer.setOnAction(event -> {
+            Morceau selection = morceaux.getSelectionModel().getSelectedItem();
+            if (selection == null) {
+                definirStatut("Choisis d'abord un morceau à supprimer.");
+            } else if (admin.supprimerMorceau(catalogue, selection.id())) {
+                afficherMorceaux(morceaux, catalogue.tousLesMorceaux(), "Morceau supprimé.");
+            } else {
+                definirStatut("Ce morceau n'est plus dans le catalogue.");
+            }
+        });
+        HBox ligneRecherche = new HBox(10, recherche, chercher, toutVoir, supprimer);
         HBox.setHgrow(recherche, Priority.ALWAYS);
 
         TextField titre = new TextField();
@@ -331,22 +349,12 @@ public final class MoodTuneApp extends Application {
                 definirStatut("Ajout impossible : " + e.getMessage());
             }
         });
-        Button supprimer = new Button("Supprimer la sélection");
-        supprimer.setOnAction(event -> {
-            Morceau selection = morceaux.getSelectionModel().getSelectedItem();
-            if (selection == null) {
-                definirStatut("Choisis d'abord un morceau à supprimer.");
-            } else if (admin.supprimerMorceau(catalogue, selection.id())) {
-                afficherMorceaux(morceaux, catalogue.tousLesMorceaux(), "Morceau supprimé.");
-            }
-        });
-
         HBox formulaireAjout = new HBox(10, titre, artiste, genre, ajouter);
         formulaireAjout.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(titre, Priority.ALWAYS);
         HBox.setHgrow(artiste, Priority.ALWAYS);
         HBox.setHgrow(genre, Priority.ALWAYS);
-        VBox contenu = new VBox(14, ligneRecherche, morceaux, formulaireAjout, supprimer);
+        VBox contenu = new VBox(14, ligneRecherche, morceaux, lecteurAudio, formulaireAjout);
         VBox.setVgrow(morceaux, Priority.ALWAYS);
         return contenu;
     }
@@ -365,7 +373,8 @@ public final class MoodTuneApp extends Application {
                 List<String> tags = HumeurMatcher.tagsJamendo(humeur);
                 try {
                     if (jamendoClient != null && !tags.isEmpty()) {
-                        List<Morceau> morceauxJamendo = jamendoClient.rechercherParTags(tags);
+                        List<Morceau> morceauxJamendo = catalogue.exclureSupprimes(
+                                jamendoClient.rechercherParTags(tags));
                         if (!morceauxJamendo.isEmpty()) {
                             return recommandeur.recommanderParmi(humeur, morceauxJamendo);
                         }
@@ -414,7 +423,7 @@ public final class MoodTuneApp extends Application {
         };
         tache.setOnSucceeded(event -> {
             bouton.setDisable(false);
-            List<Morceau> resultat = tache.getValue();
+            List<Morceau> resultat = catalogue.exclureSupprimes(tache.getValue());
             catalogue.ajouterTous(resultat);
             afficherMorceaux(liste, resultat, resultat.isEmpty()
                     ? "Aucun résultat trouvé." : resultat.size() + " résultat(s) trouvé(s).");
