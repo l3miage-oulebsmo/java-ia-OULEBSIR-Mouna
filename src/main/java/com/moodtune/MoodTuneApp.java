@@ -43,8 +43,10 @@ import javafx.scene.control.TextInputControl;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public final class MoodTuneApp extends Application {
     private final Catalogue catalogue = new Catalogue();
@@ -411,19 +413,23 @@ public final class MoodTuneApp extends Application {
         bouton.setDisable(true);
         definirStatut(jamendoClient == null
                 ? "Recherche dans le catalogue local..."
-                : "Recherche sur Jamendo...");
+                : "Recherche sur Jamendo et dans le catalogue local...");
+        List<Morceau> morceauxLocaux = rechercherLocalement(texte);
         Task<List<Morceau>> tache = new Task<>() {
             @Override
             protected List<Morceau> call() {
-                if (jamendoClient != null) {
-                    return jamendoClient.rechercher(texte);
-                }
-                return rechercherLocalement(texte);
+                return jamendoClient == null ? List.of() : jamendoClient.rechercher(texte);
             }
         };
         tache.setOnSucceeded(event -> {
             bouton.setDisable(false);
-            List<Morceau> resultat = catalogue.exclureSupprimes(tache.getValue());
+            Map<String, Morceau> resultatsUniques = new LinkedHashMap<>();
+            tache.getValue().forEach(morceau ->
+                    resultatsUniques.putIfAbsent(morceau.id(), morceau));
+            morceauxLocaux.forEach(morceau ->
+                    resultatsUniques.putIfAbsent(morceau.id(), morceau));
+            List<Morceau> resultat = catalogue.exclureSupprimes(
+                    List.copyOf(resultatsUniques.values()));
             catalogue.ajouterTous(resultat);
             afficherMorceaux(liste, resultat, resultat.isEmpty()
                     ? "Aucun résultat trouvé." : resultat.size() + " résultat(s) trouvé(s).");
